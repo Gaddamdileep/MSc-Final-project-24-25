@@ -9,3 +9,7 @@ data, meta = arff.loadarff(file_path)
 df = pd.DataFrame(data)
 
 df.head()
+df.info()
+df.describe()
+df.isnull().sum()
+df['Class'].value_counts()
