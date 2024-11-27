@@ -1,0 +1,11 @@
+import pandas as pd
+from scipy.io import arff
+
+# Load the ARFF file
+file_path =   r"/content//phpKo8OWT.arff"
+data, meta = arff.loadarff(file_path)
+
+# Convert the data to a Pandas DataFrame
+df = pd.DataFrame(data)
+
+df.head()
