@@ -13,3 +13,69 @@ df.info()
 df.describe()
 df.isnull().sum()
 df['Class'].value_counts()
+from sklearn.preprocessing import StandardScaler
+
+# Convert byte-encoded target column to integers (Class)
+df['Class'] = df['Class'].apply(lambda x: int(x.decode('utf-8')))
+
+# Scaling features using StandardScaler
+scaler = StandardScaler()
+scaled_features = df.drop(columns=['Class', 'Time'])
+scaled_features = pd.DataFrame(scaler.fit_transform(scaled_features), columns=scaled_features.columns)
+
+# Merging scaled features with the target
+df_preprocessed = pd.concat([scaled_features, df['Class']], axis=1)
+
+# Check the preprocessed dataset
+df_preprocessed.head()
+df_preprocessed["Class"].value_counts()
+df_class_0 = df_preprocessed[df_preprocessed['Class'] == 0]
+df_class_1 = df_preprocessed[df_preprocessed['Class'] == 1]
+# Sample 500 records from each class
+df_class_1_sample = df_class_1.sample(n=492, random_state=42)
+df_class_0_sample = df_class_0.sample(n=500, random_state=42)
+
+# Concatenate the two samples to form the new DataFrame
+new_df = pd.concat([df_class_1_sample, df_class_0_sample])
+new_df = new_df.sample(frac=1, random_state=42).reset_index(drop=True)
+import plotly.express as px
+# Plot the distribution of Fraud vs Non-Fraud transactions using Plotly
+fig = px.histogram(new_df, x='Class', title='Distribution of Fraud vs Non-Fraud Transactions',
+                   labels={'Class': 'Class (0: Non-Fraud, 1: Fraud)'},
+                   color='Class',
+                   barmode='group')
+fig.update_layout(xaxis_title='Class', yaxis_title='Count')
+fig.show()
+new_dffor column in new_df.columns[:-1]:  # Skip the 'Class' column
+    fig = px.histogram(new_df, x=column, color='Class', nbins=50, title=f'Distribution of {column} by Class')
+    fig.show()
+for column in new_df.columns[:-1]:  # Skip the 'Class' column
+    fig = px.box(new_df, y=column, title=f'Boxplot of {column}')
+    fig.show()
+import numpy as np
+
+# Function to remove outliers using the IQR method
+def treat_outliers_iqr(df):
+    df_treated = df.copy()  # To avoid modifying the original dataframe
+
+    for column in df.columns[:-1]:  # Skip the 'Class' column
+        Q1 = df_treated[column].quantile(0.25)
+        Q3 = df_treated[column].quantile(0.75)
+        IQR = Q3 - Q1
+
+        # Define lower and upper bound
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+
+        # Capping the outliers
+        df_treated[column] = np.where(df_treated[column] < lower_bound, lower_bound, df_treated[column])
+        df_treated[column] = np.where(df_treated[column] > upper_bound, upper_bound, df_treated[column])
+
+    return df_treated
+
+# Apply the function to treat outliers in the resampled dataset
+df_resampled_treated = treat_outliers_iqr(new_df)
+
+# Display the first few rows of the treated dataframe
+df_resampled_treated.head()
+
